@@ -1,14 +1,13 @@
 
-import openai
 import logging
 import subprocess
 import json
 from datetime import datetime, timedelta
+from llm_provider import LLMProvider
 
 class LogAnalyzer:
-    def __init__(self, openai_api_key=None):
-        if openai_api_key:
-            openai.api_key = openai_api_key
+    def __init__(self, llm_provider="ollama", api_key=None, model=None):
+        self.llm = LLMProvider(provider=llm_provider, api_key=api_key, model=model)
         
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -50,53 +49,8 @@ class LogAnalyzer:
             return ""
     
     def analyze_logs_with_llm(self, logs, alert_type):
-        """Analyze logs using OpenAI API to identify root causes"""
-        try:
-            prompt = f"""
-            You are OpsBot, an AI DevOps assistant. Analyze the following logs to identify the possible cause of a {alert_type}.
-            
-            Instructions:
-            1. Look for patterns that could cause high resource usage
-            2. Identify specific error messages or warnings
-            3. Provide a clear, actionable root cause analysis
-            4. Suggest remediation steps
-            5. Rate your confidence level (HIGH/MEDIUM/LOW)
-            
-            Logs to analyze:
-            {logs[:4000]}  # Limit to avoid token limits
-            
-            Respond in JSON format:
-            {{
-                "root_cause": "Brief description of the identified cause",
-                "confidence": "HIGH/MEDIUM/LOW",
-                "evidence": ["List of specific log entries that support your analysis"],
-                "recommended_actions": ["List of suggested remediation steps"],
-                "requires_human_intervention": true/false
-            }}
-            """
-            
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are OpsBot, a reliable AI DevOps assistant focused on system stability and root cause analysis."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=1000,
-                temperature=0.1
-            )
-            
-            analysis = json.loads(response.choices[0].message.content)
-            return analysis
-            
-        except Exception as e:
-            self.logger.error(f"Error analyzing logs with LLM: {e}")
-            return {
-                "root_cause": "Unable to analyze logs automatically",
-                "confidence": "LOW",
-                "evidence": [],
-                "recommended_actions": ["Manual investigation required"],
-                "requires_human_intervention": True
-            }
+        """Analyze logs using the configured LLM provider"""
+        return self.llm.analyze_logs(logs, alert_type)
     
     def get_process_info(self):
         """Get information about running processes"""
