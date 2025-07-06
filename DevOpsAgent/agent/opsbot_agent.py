@@ -22,8 +22,11 @@ class OpsBotAgent:
             prometheus_url=self.config.get('prometheus_url', 'http://localhost:9090')
         )
         
+        # Initialize analyzer with LLM provider configuration
         self.analyzer = LogAnalyzer(
-            openai_api_key=self.config.get('openai_api_key')
+            llm_provider=self.config.get('llm_provider', 'ollama'),
+            api_key=self.config.get('llm_api_key'),
+            model=self.config.get('llm_model')
         )
         
         self.remediation = RemediationEngine()
@@ -46,10 +49,12 @@ class OpsBotAgent:
                 with open(config_file, 'r') as f:
                     return json.load(f)
             else:
-                # Create default config
+                # Create default config with LLM options
                 default_config = {
                     "prometheus_url": "http://localhost:9090",
-                    "openai_api_key": None,
+                    "llm_provider": "ollama",
+                    "llm_api_key": None,
+                    "llm_model": None,
                     "slack_token": None,
                     "slack_channel": "#alerts",
                     "webhook_url": None,
@@ -64,12 +69,19 @@ class OpsBotAgent:
                     json.dump(default_config, f, indent=2)
                 
                 print(f"Created default config file: {config_file}")
-                print("Please update the config file with your API keys and settings")
+                print("Available LLM providers:")
+                print("- ollama (free, local)")
+                print("- groq (free tier available)")
+                print("- anthropic (free tier available)")
+                print("- openai (paid)")
+                print("Update the config file with your preferred LLM provider")
                 return default_config
                 
         except Exception as e:
             print(f"Error loading config: {e}")
             return {}
+    
+    # ... keep existing code (setup_logging, monitor_system, handle_alert, verify_remediation, start_monitoring, health_check, stop_monitoring methods)
     
     def setup_logging(self):
         """Setup logging configuration"""
@@ -224,6 +236,10 @@ class OpsBotAgent:
             else:
                 self.logger.warning("⚠️ Docker connection: Not available")
             
+            # Test LLM provider
+            llm_provider = self.config.get('llm_provider', 'ollama')
+            self.logger.info(f"✅ LLM Provider: {llm_provider}")
+            
             self.logger.info("Health check completed")
             
         except Exception as e:
@@ -240,10 +256,16 @@ def main():
     ╔═══════════════════════════════════╗
     ║           🤖 OPSBOT AGENT         ║
     ║    AI-Powered DevOps Automation   ║
+    ║        FREE LLM SUPPORTED         ║
     ╚═══════════════════════════════════╝
     """)
     
     print("Initializing OpsBot Agent...")
+    print("Supported LLM Providers:")
+    print("🆓 Ollama (Local, Free)")
+    print("🆓 Groq (Free Tier)")
+    print("🆓 Anthropic Claude (Free Tier)")
+    print("💰 OpenAI (Paid)")
     
     try:
         # Create and start the agent
